@@ -1,21 +1,21 @@
-package redsync
+package redcsync
 
 import "time"
 
-// Redsync provides a simple method for creating distributed mutexes using multiple Redis connection pools.
-type Redsync struct {
+// Redcsync provides a simple method for creating distributed mutexes using multiple Redis connection pools.
+type Redcsync struct {
 	pools []Pool
 }
 
-// New creates and returns a new Redsync instance from given Redis connection pools.
-func New(pools []Pool) *Redsync {
-	return &Redsync{
+// New creates and returns a new Redcsync instance from given Redis connection pools.
+func New(pools []Pool) *Redcsync {
+	return &Redcsync{
 		pools: pools,
 	}
 }
 
 // NewMutex returns a new distributed mutex with given name.
-func (r *Redsync) NewMutex(name string, options ...Option) *Mutex {
+func (r *Redcsync) NewMutex(name string, options ...Option) *Mutex {
 	m := &Mutex{
 		name:         name,
 		expiry:       8 * time.Second,

@@ -1,5 +1,5 @@
-package redsync
+package redcsync
 
 import "errors"
 
-var ErrFailed = errors.New("redsync: failed to acquire lock")
+var ErrFailed = errors.New("redcsync: failed to acquire lock")

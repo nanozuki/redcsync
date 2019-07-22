@@ -1,4 +1,4 @@
-package redsync
+package redcsync
 
 import (
 	"crypto/rand"

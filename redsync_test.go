@@ -1,4 +1,4 @@
-package redsync
+package redcsync
 
 import (
 	"os"
@@ -24,11 +24,11 @@ func TestMain(m *testing.M) {
 	os.Exit(result)
 }
 
-func TestRedsync(t *testing.T) {
+func TestRedcsync(t *testing.T) {
 	pools := newMockPools(8, servers)
 	rs := New(pools)
 
-	mutex := rs.NewMutex("test-redsync")
+	mutex := rs.NewMutex("test-redcsync")
 	err := mutex.Lock()
 	if err != nil {
 
