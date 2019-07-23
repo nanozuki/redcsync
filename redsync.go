@@ -1,16 +1,20 @@
 package redcsync
 
-import "time"
+import (
+	"time"
+
+	"github.com/mna/redisc"
+)
 
 // Redcsync provides a simple method for creating distributed mutexes using multiple Redis connection pools.
 type Redcsync struct {
-	pools []Pool
+	cluster *redisc.Cluster
 }
 
 // New creates and returns a new Redcsync instance from given Redis connection pools.
-func New(pools []Pool) *Redcsync {
+func New(cluster *redisc.Cluster) *Redcsync {
 	return &Redcsync{
-		pools: pools,
+		cluster: cluster,
 	}
 }
 
@@ -23,8 +27,7 @@ func (r *Redcsync) NewMutex(name string, options ...Option) *Mutex {
 		delayFunc:    func(tries int) time.Duration { return 500 * time.Millisecond },
 		genValueFunc: genValue,
 		factor:       0.01,
-		quorum:       len(r.pools)/2 + 1,
-		pools:        r.pools,
+		cluster:      r.cluster,
 	}
 	for _, o := range options {
 		o.Apply(m)

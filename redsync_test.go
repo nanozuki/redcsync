@@ -2,37 +2,46 @@ package redcsync
 
 import (
 	"os"
+	"strings"
 	"testing"
+	"time"
 
-	"github.com/stvp/tempredis"
+	"github.com/gomodule/redigo/redis"
+	"github.com/mna/redisc"
 )
 
-var servers []*tempredis.Server
+var cluster *redisc.Cluster
 
-func TestMain(m *testing.M) {
-	for i := 0; i < 8; i++ {
-		server, err := tempredis.Start(tempredis.Config{})
-		if err != nil {
-			panic(err)
-		}
-		servers = append(servers, server)
-	}
-	result := m.Run()
-	for _, server := range servers {
-		server.Term()
-	}
-	os.Exit(result)
+func createPool(addr string, opts ...redis.DialOption) (*redis.Pool, error) {
+	return &redis.Pool{
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp", addr, opts...)
+		},
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			_, err := c.Do("PING")
+			return err
+		},
+		MaxIdle:     200,
+		MaxActive:   200,
+		IdleTimeout: 2 * time.Second,
+		Wait:        true,
+	}, nil
 }
 
-func TestRedcsync(t *testing.T) {
-	pools := newMockPools(8, servers)
-	rs := New(pools)
-
-	mutex := rs.NewMutex("test-redcsync")
-	err := mutex.Lock()
-	if err != nil {
-
+func TestMain(m *testing.M) {
+	nodesStr := os.Getenv("CLUSTER_NODES")
+	cluster = &redisc.Cluster{
+		StartupNodes: strings.Split(nodesStr, ","),
+		DialOptions: []redis.DialOption{
+			redis.DialConnectTimeout(5 * time.Second),
+		},
+		CreatePool: createPool,
 	}
-
-	assertAcquired(t, pools, mutex)
+	err := cluster.Refresh()
+	if err != nil {
+		panic(err)
+	}
+	result := m.Run()
+	cluster.Close()
+	os.Exit(result)
 }
