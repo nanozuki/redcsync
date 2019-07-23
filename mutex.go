@@ -112,9 +112,9 @@ var touchScript = redis.NewScript(1, `
 func (m *Mutex) touch() (bool, error) {
 	conn := m.cluster.Get()
 	defer conn.Close()
-	redisc.BindConn(conn, m.name)
-	status, err := redis.Int64(touchScript.Do(
-		conn, m.name, m.value, int(m.expiry/time.Millisecond),
-	))
+	if err := redisc.BindConn(conn, m.name); err != nil {
+		return false, err
+	}
+	status, err := redis.Int64(touchScript.Do(conn, m.name, m.value, int(m.expiry/time.Millisecond)))
 	return status != 0, err
 }
