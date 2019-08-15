@@ -44,10 +44,7 @@ func (m *Mutex) Lock() error {
 		if i != 0 {
 			time.Sleep(m.delayFunc(i))
 		}
-		ok, err := m.acquire()
-		if err != nil {
-			return errors.Wrap(err, "acquire lock")
-		}
+		ok := m.acquire()
 		if ok {
 			return nil
 		}
@@ -74,13 +71,13 @@ func genValue() (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
-func (m *Mutex) acquire() (bool, error) {
+func (m *Mutex) acquire() bool {
 	conn := m.cluster.Get()
 	defer conn.Close()
 	reply, err := redis.String(conn.Do(
 		"SET", m.name, m.value, "NX", "PX", int(m.expiry/time.Millisecond),
 	))
-	return reply == "OK", err
+	return reply == "OK" && err == nil
 }
 
 var deleteScript = redis.NewScript(1, `
@@ -95,10 +92,10 @@ func (m *Mutex) release() (bool, error) {
 	conn := m.cluster.Get()
 	defer conn.Close()
 	if err := redisc.BindConn(conn, m.name); err != nil {
-		return false, err
+		return false, errors.Wrap(err, "bind conn")
 	}
 	status, err := redis.Int64(deleteScript.Do(conn, m.name, m.value))
-	return status != 0, err
+	return status != 0 && err == nil, nil
 }
 
 var touchScript = redis.NewScript(1, `
@@ -113,8 +110,8 @@ func (m *Mutex) touch() (bool, error) {
 	conn := m.cluster.Get()
 	defer conn.Close()
 	if err := redisc.BindConn(conn, m.name); err != nil {
-		return false, err
+		return false, errors.Wrap(err, "bind conn")
 	}
 	status, err := redis.Int64(touchScript.Do(conn, m.name, m.value, int(m.expiry/time.Millisecond)))
-	return status != 0, err
+	return status != 0 && err == nil, err
 }
